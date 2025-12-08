@@ -22,7 +22,16 @@ builder.Services.AddSingleton<IHackerNewsApiService, HackerNewsApiService>();
 builder.Services.AddScoped<IStoriesService, StoriesService>();
 builder.Services.AddHostedService<HackerNewsApiBackgroundService>();
 
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 WebApplication app = builder.Build();
+
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "HN API v1");
+});
 
 app.MapGet("hackernews/stories/best/{count:int}", HackerNewsEndpoint.GetBestStories).AddEndpointFilter<RequestValidator>();
 

@@ -53,6 +53,7 @@
 
 #### Caching Strategy
 
+* Cache stories separately from ids
 * Support distributed caching (Redis) for multi-node deployments
 * Add incremental updates rather than full refresh each cycle
 * Add warm-up routine on startup so cache is not empty for first few seconds
