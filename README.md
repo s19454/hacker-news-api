@@ -1,33 +1,71 @@
-# HackerNews API
+## README
 
-## Requirements
+### Overview
 
-Using ASP.NET Core, implement a RESTful API to retrieve the details of the first n "best stories" from the Hacker News API, where n is specified by the caller to the API.
+* Minimal API that returns top Hacker News stories
+* BackgroundService polls Hacker News API, fetches best story IDs, hydrates stories, sorts by score, caches top N
+* HTTP endpoint exposes `GET /hackernews/stories/best/{n}` returning cached results
+* Cache is in-memory, thread-safe, refreshed on interval
 
-The Hacker News API is documented here: https://github.com/HackerNews/API .
-The IDs for the "best stories" can be retrieved from this URI: https://hacker-news.firebaseio.com/v0/beststories.json .
-The details for an individual story ID can be retrieved from this URI: https://hacker-news.firebaseio.com/v0/item/21233041.json (in this case for the story with ID
-21233041)
+### Running the application
 
-The API should return an array of the first n "best stories" as returned by the Hacker News API, sorted by their score in a descending order, in the form:
+* Requires .NET 7 SDK installed
+* Navigate to `src/HackerNewsApi.Host`
+* Run `dotnet run`
+* Service starts IIS and background refresh loop
+* Default endpoint: `GET http://localhost:{port}/hackernews/stories/best/10`
+* Requires config keys present in appsettings:
+  * `Cache:MaxSize` → max number of cached stories
+  * `Cache:RefreshMiliseconds` → background refresh interval
 
-```
-[  
-    {  
-        "title": "A uBlock Origin update was rejected from the Chrome Web Store",  
-        "uri": "https://github.com/uBlockOrigin/uBlock-issues/issues/745",  
-        "postedBy": "ismaildonmez",  
-        "time": "2019-10-12T13:43:01+00:00",  
-        "score": 1716,  
-        "commentCount": 572  
-    },  
-    { ... },  
-    { ... },  
-    { ... },  
-    ...  
-]  
-```
+### Assumptions
 
-In addition to the above, your API should be able to efficiently service large numbers of requests without risking overloading of the Hacker News API.
+* Hacker News API is stable and returns valid JSON for story and ID endpoints
+* Network latency/temporary errors are tolerated by retry loops
+* Cache refresh duration is shorter than consumer API latency expectations
+* In-memory cache is acceptable (no persistence, no scale-out)
+* First request may block until cache warm-up
+* All failures in background refresh only log error, no fallback strategy
+* API tightly coupled to external API response structure
 
-You should share a public repository with us, that should include a README.md file which describes how to run the application, any assumptions you have made, andany enhancements or changes you would make, given the time.
+### Enhancements (given more time)
+
+#### Architecture
+
+* Replace simple cache with MemoryCache + TTL + eviction
+* Add Polly resilience policies (retry, circuit breaker) for Hacker News API calls
+* Add typed HttpClient with proper timeouts and handler pipeline
+* Add DTOs/transformers to decouple domain from HN API format
+* Replace BackgroundService with IHostedService + channels for more control
+
+#### Performance
+
+* Replace per-ID `GetStoryAsync` with batching or parallel throttling
+* Replace `Task.WhenAll` with controlled parallelism to avoid exhausting sockets
+* Add metrics (Prometheus/Grafana) for cache refresh timing, failures, throughput
+
+#### API Improvements
+
+* Add OpenAPI/Swagger definition
+* Add `GET /health` and `GET /metrics`
+* Add filtering/sorting options (e.g., by time, author)
+* Move count argument to query
+
+#### Caching Strategy
+
+* Support distributed caching (Redis) for multi-node deployments
+* Add incremental updates rather than full refresh each cycle
+* Add warm-up routine on startup so cache is not empty for first few seconds
+
+#### Testing
+
+* Add full integration tests using TestServer
+* Add contract tests for Hacker News API assumptions
+* Add load tests verifying cache timing & concurrency correctness
+
+#### DevOps
+
+* Dockerfile + docker-compose
+* CI pipeline with linting, analyzers, tests
+* Add environment-based config layering (dev/staging/production)
+
