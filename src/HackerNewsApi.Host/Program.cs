@@ -1,25 +1,31 @@
-var builder = WebApplication.CreateBuilder(args);
+using HackerNewsApi.Api.Cache;
+using HackerNewsApi.Api.Core.Interfaces;
+using HackerNewsApi.Api.Endpoints;
+using HackerNewsApi.Api.Filters;
+using HackerNewsApi.Api.Services;
+using HackerNewsApi.Application.Cache;
+using HackerNewsApi.Application.Services;
+using HackerNewsApi.Host.Services;
 
-// Add services to the container.
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
 
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+builder.Services.AddHttpClient("HackerNews", client =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    client.BaseAddress = new Uri(builder.Configuration.GetValue<string>("HackerNewsApi:Url")!);
+});
 
-app.UseHttpsRedirection();
+builder.Services.AddSingleton<IHackerNewsApiCache, HackerNewsApiSimpleCache>();
+builder.Services.AddSingleton<IHackerNewsApiService, HackerNewsApiService>();
+builder.Services.AddScoped<IStoriesService, StoriesService>();
+builder.Services.AddHostedService<HackerNewsApiBackgroundService>();
 
-app.UseAuthorization();
+WebApplication app = builder.Build();
 
-app.MapControllers();
+app.MapGet("hackernews/stories/best/{count:int}", HackerNewsEndpoint.GetBestStories).AddEndpointFilter<RequestValidator>();
 
 app.Run();
+
+internal partial class Program { }
