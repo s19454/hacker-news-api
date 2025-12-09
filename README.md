@@ -14,9 +14,6 @@
 * Run `dotnet run`
 * Service starts IIS and background refresh loop
 * Default endpoint: `GET http://localhost:{port}/hackernews/stories/best/10`
-* Requires config keys present in appsettings:
-  * `Cache:MaxSize` → max number of cached stories
-  * `Cache:RefreshMiliseconds` → background refresh interval
  
 <img width="1877" height="2043" alt="image" src="https://github.com/user-attachments/assets/2ae273dc-347e-4cab-9336-5b7e7e728c02" />
 
